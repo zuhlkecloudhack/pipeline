@@ -16,6 +16,10 @@ from apache_beam.transforms import trigger
 
 # Derived from https://github.com/apache/beam/blob/master/sdks/python/apache_beam/examples/complete/game/game_stats.py
 
+def timestamp2str(t, fmt='%Y-%m-%d %H:%M:%S.000'):
+  """Converts a unix timestamp into a formatted string."""
+  return datetime.datetime.fromtimestamp(t).strftime(fmt)
+
 class WriteToBigQuery(beam.PTransform):
     """Generate, format, and write BigQuery table row information."""
     def __init__(self, table_name, dataset, schema):
@@ -102,6 +106,22 @@ class ExtractAndSumWords(beam.PTransform):
                 | beam.CombinePerKey(sum))
 
 
+class FlightScoreDict(beam.DoFn):
+    """Formats the data into a dictionary of BigQuery columns with their values
+    Receives a (team, score) pair, extracts the window start timestamp, and
+    formats everything together into a dictionary. The dictionary is in the format
+    {'bigquery_column': value}
+    """
+    def process(self, flight_score, window=beam.DoFn.WindowParam):
+        (flight, score) = flight_score
+        yield {
+            'flight': flight,
+            'total_no_of_words': score,
+            'processing_time': timestamp2str(int(time.time()))
+
+        }
+
+
 def run(argv=None):
     parser = argparse.ArgumentParser()
 
@@ -146,16 +166,21 @@ def run(argv=None):
 
         def format_flight_score_sums(flight_score):
             (flight, score) = flight_score
-            return {'flight': flight, 'total_no_of_words': score}
+            return {'flight': flight,
+                    'total_no_of_words': score,
+                    'processing_time': timestamp2str(int(time.time()))
+                    }
 
         # Get user scores and write the results to BigQuery
         (events  # pylint: disable=expression-not-assigned
          | 'CalculateUserScores' >> CalculateFlightScores(args.allowed_lateness)
-         | 'FormatUserScoreSums' >> beam.Map(format_flight_score_sums)
+         | 'FlightScoresDict' >> beam.Map(format_flight_score_sums)
+         # | 'FlightScoresDict' >> beam.ParDo(FlightScoreDict())
          | 'WriteUserScoreSums' >> WriteToBigQuery(
              args.table_name, args.dataset, {
                  'flight': 'STRING',
                  'total_no_of_words': 'INTEGER',
+                 'processing_time': 'STRING',
              }))
 
 

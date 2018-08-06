@@ -32,6 +32,7 @@ python store_pipeline.py \
     --topic=projects/zuhlkecloudhack/topics/flight_messages \
     --dataset=cloudhack \
     --temp_location gs://flight_messages/tmp/ \
+    --numWorkers=3 \
     --runner DataflowRunner
 ```
 

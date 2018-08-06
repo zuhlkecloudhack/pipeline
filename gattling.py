@@ -22,12 +22,13 @@ def run():
         '
     """
 
-    while True:
-    # for i in range(50):
-        msg = cmd.format(flight=random.choice(flight_numbers),
-                         message=get_message(N))
+    msg = cmd.format(flight=random.choice(flight_numbers),
+                     message=get_message(N))
 
-        subprocess.call(msg, shell=True)
+    subprocess.call(msg, shell=True)
 
 if __name__ == '__main__':
-    run()
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=50) as executor:
+        while True:
+            executor.submit(run)
