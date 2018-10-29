@@ -18,23 +18,28 @@ gcloud auth application-default login
 Running locally:
 
 ```
-python store_pipeline.py \
+python pipeline.py \
     --project=zuhlkecloudhack \
     --topic=projects/zuhlkecloudhack/topics/flight_messages \
     --dataset=cloudhack
+    --table_name=flight_messages_python_pipeline
+    --requirements_file requirements.txt
 ```
 
 Running on Dataflow:
 
 ```
-python store_pipeline.py \
+python pipeline.py \
     --project=zuhlkecloudhack \
     --topic=projects/zuhlkecloudhack/topics/flight_messages \
+    --response_topic=projects/zuhlkecloudhack/topics/flight_messages_response \
     --dataset=cloudhack \
-    --temp_location gs://flight_messages/tmp/ \
-    --numWorkers=3 \
-    --runner DataflowRunner
+    --table_name=flight_messages_python_pipeline \
+    --requirements_file requirements.txt \
+    --temp_location=gs://flight_messages/tmp/ \
+    --runner=DataflowRunner
 ```
+
 
 Publish message into topic:
 ```
